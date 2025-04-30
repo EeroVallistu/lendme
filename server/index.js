@@ -3,6 +3,7 @@ const cors = require('cors');
 const path = require('path');
 const db = require('./db/database');
 const authRoutes = require('./routes/auth');
+const equipmentRoutes = require('./routes/equipment');
 
 // Initialize express app
 const app = express();
@@ -14,6 +15,10 @@ app.use(express.json());
 
 // Routes
 app.use('/api/auth', authRoutes);
+app.use('/api/equipment', equipmentRoutes);
+
+// Serve uploaded files
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 // Simple test route
 app.get('/api/health', (req, res) => {

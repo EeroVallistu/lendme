@@ -30,7 +30,45 @@ function init() {
           return reject(err);
         }
         console.log('Users table initialized');
-        resolve();
+        
+        // Create equipment table
+        db.run(`CREATE TABLE IF NOT EXISTS equipment (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          name TEXT NOT NULL,
+          category TEXT NOT NULL,
+          model_number TEXT NOT NULL,
+          serial_number TEXT NOT NULL UNIQUE,
+          description TEXT,
+          condition TEXT NOT NULL,
+          location TEXT NOT NULL,
+          maintenance_schedule TEXT,
+          notes TEXT,
+          user_id INTEGER NOT NULL,
+          created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+          FOREIGN KEY (user_id) REFERENCES users(id)
+        )`, (err) => {
+          if (err) {
+            console.error('Error creating equipment table', err);
+            return reject(err);
+          }
+          console.log('Equipment table initialized');
+          
+          // Create equipment_images table
+          db.run(`CREATE TABLE IF NOT EXISTS equipment_images (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            equipment_id INTEGER NOT NULL,
+            image_path TEXT NOT NULL,
+            created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (equipment_id) REFERENCES equipment(id) ON DELETE CASCADE
+          )`, (err) => {
+            if (err) {
+              console.error('Error creating equipment_images table', err);
+              return reject(err);
+            }
+            console.log('Equipment images table initialized');
+            resolve();
+          });
+        });
       });
     });
   });
@@ -87,7 +125,82 @@ const user = {
   }
 };
 
+// Equipment operations
+const equipment = {
+  // Create a new equipment item
+  create(equipmentData, userId) {
+    return new Promise((resolve, reject) => {
+      db.run(
+        `INSERT INTO equipment (
+          name, category, model_number, serial_number, 
+          description, condition, location, 
+          maintenance_schedule, notes, user_id
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        [
+          equipmentData.name,
+          equipmentData.category,
+          equipmentData.modelNumber,
+          equipmentData.serialNumber,
+          equipmentData.description || null,
+          equipmentData.condition,
+          equipmentData.location,
+          equipmentData.maintenanceSchedule || null,
+          equipmentData.notes || null,
+          userId
+        ],
+        function(err) {
+          if (err) {
+            return reject(err);
+          }
+          resolve({ id: this.lastID, ...equipmentData });
+        }
+      );
+    });
+  },
+
+  // Add images for an equipment item
+  addImage(equipmentId, imagePath) {
+    return new Promise((resolve, reject) => {
+      db.run(
+        'INSERT INTO equipment_images (equipment_id, image_path) VALUES (?, ?)',
+        [equipmentId, imagePath],
+        function(err) {
+          if (err) {
+            return reject(err);
+          }
+          resolve({ id: this.lastID, equipmentId, imagePath });
+        }
+      );
+    });
+  },
+
+  // Get all equipment for a user
+  getAllForUser(userId) {
+    return new Promise((resolve, reject) => {
+      db.all('SELECT * FROM equipment WHERE user_id = ? ORDER BY created_at DESC', [userId], (err, rows) => {
+        if (err) {
+          return reject(err);
+        }
+        resolve(rows);
+      });
+    });
+  },
+
+  // Get equipment by serial number to check uniqueness
+  findBySerialNumber(serialNumber) {
+    return new Promise((resolve, reject) => {
+      db.get('SELECT * FROM equipment WHERE serial_number = ?', [serialNumber], (err, row) => {
+        if (err) {
+          return reject(err);
+        }
+        resolve(row);
+      });
+    });
+  }
+};
+
 module.exports = {
   init,
-  user
+  user,
+  equipment
 };
