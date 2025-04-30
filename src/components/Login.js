@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 
-function SignUp() {
+function Login() {
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [error, setError] = useState('');
@@ -14,7 +14,7 @@ function SignUp() {
         setIsLoading(true);
 
         try {
-            const response = await fetch('/api/auth/register', {
+            const response = await fetch('/api/auth/login', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -25,17 +25,17 @@ function SignUp() {
             const data = await response.json();
 
             if (!response.ok) {
-                throw new Error(data.message || 'Registration failed');
+                throw new Error(data.message || 'Login failed');
             }
 
             // Store the token in localStorage
             localStorage.setItem('userToken', data.token);
             localStorage.setItem('userEmail', data.user.email);
             
-            // Redirect to dashboard or home page
+            // Redirect to dashboard
             navigate('/dashboard');
         } catch (err) {
-            setError(err.message || 'Failed to create account');
+            setError(err.message || 'Invalid email or password');
         } finally {
             setIsLoading(false);
         }
@@ -43,7 +43,7 @@ function SignUp() {
 
     return (
         <div className="signup-container">
-            <h2>Create Account</h2>
+            <h2>Login</h2>
             {error && <div className="error-message">{error}</div>}
             <form onSubmit={handleSubmit} className="signup-form">
                 <div className="form-group">
@@ -71,11 +71,11 @@ function SignUp() {
                     className="submit-button"
                     disabled={isLoading}
                 >
-                    {isLoading ? 'Creating Account...' : 'Sign Up'}
+                    {isLoading ? 'Logging in...' : 'Login'}
                 </button>
             </form>
         </div>
     );
 }
 
-export default SignUp;
+export default Login;
